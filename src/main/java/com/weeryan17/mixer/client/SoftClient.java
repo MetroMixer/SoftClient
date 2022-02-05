@@ -64,7 +64,13 @@ public class SoftClient {
 
     private Socket udp = null;
     private Gson gson;
+    private JackPort in1;
+    private JackPort in2;
+    private JackPort out1;
+    private JackPort out2;
     private JackProcessCallback processCallback;
+
+    private List<JackPort> outputs;
 
     public void init(String... args) throws JackException, IOException {
         gson = new GsonBuilder().registerTypeAdapterFactory(new GsonJava8TypeAdapterFactory()).setPrettyPrinting().create();
@@ -72,15 +78,15 @@ public class SoftClient {
         Jack jack = Jack.getInstance();
         EnumSet<JackStatus> enumSet = EnumSet.noneOf(JackStatus.class);
         JackClient client = jack.openClient("mixer-test", EnumSet.noneOf(JackOptions.class), enumSet);
-        JackPort in1 = client.registerPort("in-1", JackPortType.AUDIO, EnumSet.of(JackPortFlags.JackPortIsInput, JackPortFlags.JackPortIsTerminal));
-        JackPort in2 = client.registerPort("in-2", JackPortType.AUDIO, EnumSet.of(JackPortFlags.JackPortIsInput, JackPortFlags.JackPortIsTerminal));
+        in1 = client.registerPort("in-1", JackPortType.AUDIO, EnumSet.of(JackPortFlags.JackPortIsInput, JackPortFlags.JackPortIsTerminal));
+        in2 = client.registerPort("in-2", JackPortType.AUDIO, EnumSet.of(JackPortFlags.JackPortIsInput, JackPortFlags.JackPortIsTerminal));
 
-        JackPort out1 = client.registerPort("out-1", JackPortType.AUDIO, EnumSet.of(JackPortFlags.JackPortIsOutput, JackPortFlags.JackPortIsTerminal));
-        JackPort out2 = client.registerPort("out-2", JackPortType.AUDIO, EnumSet.of(JackPortFlags.JackPortIsOutput, JackPortFlags.JackPortIsTerminal));
+        out1 = client.registerPort("out-1", JackPortType.AUDIO, EnumSet.of(JackPortFlags.JackPortIsOutput, JackPortFlags.JackPortIsTerminal));
+        out2 = client.registerPort("out-2", JackPortType.AUDIO, EnumSet.of(JackPortFlags.JackPortIsOutput, JackPortFlags.JackPortIsTerminal));
 
         System.out.println(enumSet.stream().map(Enum::name).collect(Collectors.joining(", ")));
 
-        List<JackPort> outputs = new ArrayList<>();
+        outputs = new ArrayList<>();
         outputs.add(in1);
         outputs.add(in2);
 
@@ -135,23 +141,32 @@ public class SoftClient {
             int size = 0;
             for (JackPort port1 : outputs) {
                 FloatBuffer fBuffer = port1.getFloatBuffer();
-                ByteBuffer buffer = ByteBuffer.allocate((fBuffer.remaining() * 4) + 4);
+                int byteAmount = (fBuffer.remaining() * 4) + 4;
+                ByteBuffer buffer = ByteBuffer.allocate(byteAmount);
                 buffer.putInt(fBuffer.remaining());
+                //System.out.println();
                 while (fBuffer.hasRemaining()) {
                     float f = fBuffer.get();
+                    //System.out.print(f + " ");
                     buffer.putFloat(f);
                 }
+                buffer.rewind();
+                //System.out.println(buffer.remaining());
                 toSend1.add(buffer);
-                size += buffer.array().length;
+                size += byteAmount;
             }
             if (toSend1.size() > 0) {
                 ByteBuffer send = ByteBuffer.allocate(size + 4);
                 send.putInt(toSend1.size());
                 for (ByteBuffer buffer : toSend1) {
+                    //System.out.println(buffer.remaining());
                     send.put(buffer);
                 }
-                byte[] audio = send.array();
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                send.rewind();
+                byte[] audio = new byte[send.remaining()];
+                send.get(audio);
+                //System.out.println(bytesToHex(audio));
+                /*ByteArrayOutputStream out = new ByteArrayOutputStream();
                 try {
                     GZIPOutputStream gzipOutputStream = new GZIPOutputStream(out);
                     gzipOutputStream.write(audio);
@@ -159,7 +174,8 @@ public class SoftClient {
                     gzipOutputStream.close();
                     audio = out.toByteArray();
                 } catch (IOException ignored) {
-                }
+                    ignored.printStackTrace();
+                }*/
                 try {
                     ByteBuffer buffer = ByteBuffer.allocate(4);
                     buffer.putInt(audio.length);
@@ -190,8 +206,19 @@ public class SoftClient {
         client.activate();
     }
 
+    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
     private WebSocketClient webSocketClient;
-    private Queue<List<FloatBuffer>> queue = EvictingQueue.create(5);
+    private Queue<List<FloatBuffer>> queue = EvictingQueue.create(1);
 
     private void connect(String ip, int port) {
 
@@ -266,8 +293,9 @@ public class SoftClient {
                                         int floatAmount = audioBuffer.getInt();
                                         FloatBuffer floatBuffer = FloatBuffer.allocate(floatAmount);
                                         for (int i2 = 0; i2 < floatAmount; i2++) {
-                                            floatBuffer.put(buffer.getFloat());
+                                            floatBuffer.put(audioBuffer.getFloat());
                                         }
+                                        floatBuffer.rewind();
                                         buffers.add(floatBuffer);
                                     }
                                     queue.add(buffers);
