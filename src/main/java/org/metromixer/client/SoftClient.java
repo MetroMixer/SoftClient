@@ -1,4 +1,4 @@
-package com.weeryan17.mixer.client;
+package org.metromixer.client;
 
 import com.google.common.collect.EvictingQueue;
 import com.google.gson.Gson;
@@ -6,13 +6,13 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.weeryan17.mixer.shared.command.data.CreateChannels;
-import com.weeryan17.mixer.shared.command.data.IdentifyProperties;
-import com.weeryan17.mixer.shared.command.data.Init;
-import com.weeryan17.mixer.shared.command.meta.ClientType;
-import com.weeryan17.mixer.shared.command.meta.CommandType;
-import com.weeryan17.mixer.shared.models.ChannelInfo;
-import com.weeryan17.mixer.shared.models.ChannelType;
+import org.metromixer.shared.command.data.CreateChannels;
+import org.metromixer.shared.command.data.IdentifyProperties;
+import org.metromixer.shared.command.data.Init;
+import org.metromixer.shared.command.meta.ClientType;
+import org.metromixer.shared.command.meta.CommandType;
+import org.metromixer.shared.models.ChannelInfo;
+import org.metromixer.shared.models.ChannelType;
 import com.weeryan17.rudp.ReliableSocket;
 import net.dongliu.gson.GsonJava8TypeAdapterFactory;
 import org.jaudiolibs.jnajack.Jack;
