@@ -166,7 +166,7 @@ public class SoftClient {
                 byte[] audio = new byte[send.remaining()];
                 send.get(audio);
                 //System.out.println(bytesToHex(audio));
-                /*ByteArrayOutputStream out = new ByteArrayOutputStream();
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
                 try {
                     GZIPOutputStream gzipOutputStream = new GZIPOutputStream(out);
                     gzipOutputStream.write(audio);
@@ -175,7 +175,7 @@ public class SoftClient {
                     audio = out.toByteArray();
                 } catch (IOException ignored) {
                     ignored.printStackTrace();
-                }*/
+                }
                 try {
                     ByteBuffer buffer = ByteBuffer.allocate(4);
                     buffer.putInt(audio.length);
